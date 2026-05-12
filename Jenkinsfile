@@ -1,8 +1,10 @@
 pipeline {
     agent any
-    tools{
+
+    tools {
         jdk 'jdk-17'
     }
+
     stages {
         stage('pipeline_mr') {
             when { not { branch 'main' } }
@@ -24,15 +26,13 @@ pipeline {
                 }
                 stage('Build_mr_and_push') {
                     steps {
-                        
                         sh './gradlew bootJar -x test'
                         script {
-                            
                             env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                             
-                            
                             withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
-                                sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8083"
+                                // 127.0.0.1 wymusza na Dockerze ominięcie sprawdzania certyfikatów HTTPS
+                                sh 'echo $NEXUS_PASSWORD | docker login -u $NEXUS_USER --password-stdin 127.0.0.1:8083'
                                 sh "docker build -t 127.0.0.1:8083/spring-petclinic:${env.GIT_COMMIT_SHORT} ."
                                 sh "docker push 127.0.0.1:8083/spring-petclinic:${env.GIT_COMMIT_SHORT}"
                             }
@@ -49,10 +49,8 @@ pipeline {
                 
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
                     script {
-                        sh "docker version"
                         sh "docker build -t 127.0.0.1:8082/spring-petclinic:latest ."
-                        
-                        sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8082"
+                        sh 'echo $NEXUS_PASSWORD | docker login -u $NEXUS_USER --password-stdin 127.0.0.1:8082'
                         sh "docker push 127.0.0.1:8082/spring-petclinic:latest"
                     }
                 }
