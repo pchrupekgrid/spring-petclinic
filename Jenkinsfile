@@ -1,6 +1,10 @@
 pipeline {
     agent any
-
+        environment {
+        DOCKER_HOST = 'tcp://jenkins-docker:2376'
+        DOCKER_TLS_VERIFY = '1'
+        DOCKER_CERT_PATH = '/certs/client'
+    }
     stages {
         stage('pipeline_a') {
             when { not { branch 'main' } }
