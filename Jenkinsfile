@@ -21,8 +21,7 @@ pipeline {
                 }
                 stage('Test_mr') {
                     steps {
-                        sh './gradlew test'
-                    }
+                        sh './gradlew test -Dspring.docker.compose.skip.in-tests=true'                    }
                 }
                 stage('Build_mr_and_push') {
                     steps {
