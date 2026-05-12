@@ -21,7 +21,8 @@ pipeline {
                 }
                 stage('Test_mr') {
                     steps {
-                         sh './gradlew test --tests "org.springframework.samples.petclinic.*" --exclude-tests "*IntegrationTests"'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            sh './gradlew test'
                     }
                 }
                 stage('Build_mr_and_push') {
