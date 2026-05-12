@@ -1,16 +1,10 @@
 pipeline {
     agent any
-    
-    tools {
-        // Ta linijka nakazuje Jenkinsowi pobrać Docker z instalatora, który przed chwilą dodałeś
-        dockerTool 'my-docker' 
-    }
 
     environment {
-        // Połączenie z kontenerem jenkins-docker (DinD)
-        DOCKER_HOST = 'tcp://jenkins-docker:2376'
-        DOCKER_TLS_VERIFY = '1'
-        DOCKER_CERT_PATH = '/certs/client'
+        // Łączymy się z Twoim kontenerem DinD przez sieć Dockerową
+        // Używamy portu 2375 (z Twojego docker ps), który zazwyczaj nie wymaga TLS
+        DOCKER_HOST = 'tcp://jenkins-docker:2375'
     }
 
     stages {
@@ -36,10 +30,12 @@ pipeline {
                     steps {
                         sh './gradlew bootJar -x test'
                         script {
-                            // Próba wykonania wewnątrz zainstalowanego narzędzia
-                            docker.withRegistry('http://nexus:8083', 'nexus-creds') {
-                                def image = docker.build("spring-petclinic:${sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}")
-                                image.push()
+                            env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                            
+                            withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
+                                sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8083"
+                                sh "docker build -t nexus:8083/spring-petclinic:${env.GIT_COMMIT_SHORT} ."
+                                sh "docker push nexus:8083/spring-petclinic:${env.GIT_COMMIT_SHORT}"
                             }
                         }
                     }
@@ -50,11 +46,14 @@ pipeline {
         stage('Build_b_and_push') {
             when { branch 'main' }
             steps {
-                script {
-                    // Tutaj Jenkins użyje narzędzia 'my-docker' automatycznie dzięki sekcji tools {}
-                    docker.withRegistry('http://nexus:8082', 'nexus-creds') {
-                        def image = docker.build("spring-petclinic:latest")
-                        image.push()
+                withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
+                    script {
+                        // Budujemy obraz dla gałęzi main
+                        sh "docker build -t nexus:8082/spring-petclinic:latest ."
+                        
+                        // Logowanie i Push na port 8082
+                        sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8082"
+                        sh "docker push nexus:8082/spring-petclinic:latest"
                     }
                 }
             }
