@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        // Nazwa musi być identyczna z tą w Global Tool Configuration
+        // Ta linijka nakazuje Jenkinsowi pobrać Docker z instalatora, który przed chwilą dodałeś
         dockerTool 'my-docker' 
     }
 
@@ -36,17 +36,10 @@ pipeline {
                     steps {
                         sh './gradlew bootJar -x test'
                         script {
-                            // Pobieramy ścieżkę do zainstalowanego Dockera
-                            def dockerToolPath = tool name: 'my-docker', type: 'docker-tool'
-                            
-                            // Wymuszamy dodanie binarki do PATH
-                            withEnv(["PATH+DOCKER=${dockerToolPath}/bin"]) {
-                                env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                                
-                                docker.withRegistry('http://nexus:8083', 'nexus-creds') {
-                                    def image = docker.build("spring-petclinic:${env.GIT_COMMIT_SHORT}")
-                                    image.push()
-                                }
+                            // Próba wykonania wewnątrz zainstalowanego narzędzia
+                            docker.withRegistry('http://nexus:8083', 'nexus-creds') {
+                                def image = docker.build("spring-petclinic:${sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}")
+                                image.push()
                             }
                         }
                     }
@@ -58,15 +51,10 @@ pipeline {
             when { branch 'main' }
             steps {
                 script {
-                    // Pobieramy ścieżkę do zainstalowanego Dockera
-                    def dockerToolPath = tool name: 'my-docker', type: 'docker-tool'
-                    
-                    // Wymuszamy dodanie binarki do PATH
-                    withEnv(["PATH+DOCKER=${dockerToolPath}/bin"]) {
-                        docker.withRegistry('http://nexus:8082', 'nexus-creds') {
-                            def image = docker.build("spring-petclinic:latest")
-                            image.push()
-                        }
+                    // Tutaj Jenkins użyje narzędzia 'my-docker' automatycznie dzięki sekcji tools {}
+                    docker.withRegistry('http://nexus:8082', 'nexus-creds') {
+                        def image = docker.build("spring-petclinic:latest")
+                        image.push()
                     }
                 }
             }
