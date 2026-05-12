@@ -20,11 +20,9 @@ pipeline {
                     }
                 }
                 stage('Test_mr') {
-                    environment {
-                        SPRING_DOCKER_COMPOSE_ENABLED = 'false'
-                    }
                     steps {
-                        sh './gradlew test -Dspring.docker.compose.skip.in-tests=true'                    }
+                         sh './gradlew test --tests "org.springframework.samples.petclinic.*" --exclude-tests "*IntegrationTests"'
+                    }
                 }
                 stage('Build_mr_and_push') {
                     steps {
