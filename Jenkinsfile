@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     environment {
-        // Próbujemy połączyć się z daemonem. 
-        // Jeśli 2375 nie zadziała, zmień na 2376.
-        DOCKER_HOST = 'tcp://jenkins-docker:2375'
-        // Wyłączamy sprawdzanie TLS dla uproszczenia w środowisku lokalnym
+        // Wymuszamy bezpośrednie połączenie z Twoim Makiem
+        DOCKER_HOST = 'unix:///var/run/docker.sock'
+        // Wyłączamy sprawdzanie certyfikatów (to naprawi błąd ca.pem)
         DOCKER_TLS_VERIFY = '0'
+        // Czyścimy ścieżkę certyfikatów, żeby nie szukał plików w .docker
+        DOCKER_CERT_PATH = ''
     }
 
     stages {
@@ -50,11 +51,13 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
                     script {
-                        // Debug: Sprawdźmy czy klient widzi serwer
-                        sh "docker version || echo 'Nadal brak polaczenia z daemonem'"
+                        // Sprawdzamy połączenie - teraz 'Server' powinien się pokazać poprawnie
+                        sh "docker version"
                         
-                        // Budowa i push na port 8082
+                        // Budowa obrazu (korzysta z silnika Twojego Maca M1)
                         sh "docker build -t nexus:8082/spring-petclinic:latest ."
+                        
+                        // Logowanie i Push na port 8082
                         sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8082"
                         sh "docker push nexus:8082/spring-petclinic:latest"
                     }
