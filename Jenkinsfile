@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    tools{
+        jdk 'jdk-17'
+    }
     stages {
         stage('pipeline_mr') {
             when { not { branch 'main' } }
