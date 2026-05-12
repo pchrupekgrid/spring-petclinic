@@ -1,10 +1,18 @@
 pipeline {
     agent any
-        environment {
+    
+    tools {
+        // Ta nazwa MUSI być taka sama jak ta, którą wpiszesz w ustawieniach Tools
+        dockerTool 'my-docker' 
+    }
+
+    environment {
+        // Połączenie z Twoim drugim kontenerem (DinD)
         DOCKER_HOST = 'tcp://jenkins-docker:2376'
         DOCKER_TLS_VERIFY = '1'
         DOCKER_CERT_PATH = '/certs/client'
     }
+
     stages {
         stage('pipeline_a') {
             when { not { branch 'main' } }
@@ -28,10 +36,7 @@ pipeline {
                     steps {
                         sh './gradlew bootJar -x test'
                         script {
-                            // Pobranie krótkiego hasha commita
                             env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                            
-                            // Logowanie do Nexusa (Port 8083 dla MR) i wysyłka
                             docker.withRegistry('http://nexus:8083', 'nexus-creds') {
                                 def image = docker.build("spring-petclinic:${env.GIT_COMMIT_SHORT}")
                                 image.push()
@@ -46,7 +51,6 @@ pipeline {
             when { branch 'main' }
             steps {
                 script {
-                    // Logowanie do Nexusa (Port 8082 dla Main) i wysyłka obrazu z tagiem latest
                     docker.withRegistry('http://nexus:8082', 'nexus-creds') {
                         def image = docker.build("spring-petclinic:latest")
                         image.push()
