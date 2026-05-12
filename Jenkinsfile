@@ -23,11 +23,11 @@ pipeline {
                 stage('Build_a_and_push') {
                     steps {
                         sh './gradlew bootJar -x test'
-                        script {env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()}
+                        script {env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                         docker.withRegistry('http://nexus:8083', 'nexus-creds'){
                             def image = docker.build("spring-petclinic:${env.GIT_COMMIT_SHORT}")
                             image.push()
-                        }
+                        }}
                     }
                 }
             }
