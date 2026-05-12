@@ -33,8 +33,8 @@ pipeline {
                             
                             withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
                                 sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8083"
-                                sh "docker build -t nexus:8083/spring-petclinic:${env.GIT_COMMIT_SHORT} ."
-                                sh "docker push nexus:8083/spring-petclinic:${env.GIT_COMMIT_SHORT}"
+                                sh "docker build -t 127.0.0.1:8083/spring-petclinic:${env.GIT_COMMIT_SHORT} ."
+                                sh "docker push 127.0.0.1:8083/spring-petclinic:${env.GIT_COMMIT_SHORT}"
                             }
                         }
                     }
@@ -50,10 +50,10 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
                     script {
                         sh "docker version"
-                        sh "docker build -t nexus:8082/spring-petclinic:latest ."
+                        sh "docker build -t 127.0.0.1:8082/spring-petclinic:latest ."
                         
                         sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8082"
-                        sh "docker push nexus:8082/spring-petclinic:latest"
+                        sh "docker push 127.0.0.1:8082/spring-petclinic:latest"
                     }
                 }
             }
