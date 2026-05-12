@@ -2,9 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Łączymy się z Twoim kontenerem DinD przez sieć Dockerową
-        // Używamy portu 2375 (z Twojego docker ps), który zazwyczaj nie wymaga TLS
+        // Próbujemy połączyć się z daemonem. 
+        // Jeśli 2375 nie zadziała, zmień na 2376.
         DOCKER_HOST = 'tcp://jenkins-docker:2375'
+        // Wyłączamy sprawdzanie TLS dla uproszczenia w środowisku lokalnym
+        DOCKER_TLS_VERIFY = '0'
     }
 
     stages {
@@ -48,10 +50,11 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USER')]) {
                     script {
-                        // Budujemy obraz dla gałęzi main
-                        sh "docker build -t nexus:8082/spring-petclinic:latest ."
+                        // Debug: Sprawdźmy czy klient widzi serwer
+                        sh "docker version || echo 'Nadal brak polaczenia z daemonem'"
                         
-                        // Logowanie i Push na port 8082
+                        // Budowa i push na port 8082
+                        sh "docker build -t nexus:8082/spring-petclinic:latest ."
                         sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USER} --password-stdin http://nexus:8082"
                         sh "docker push nexus:8082/spring-petclinic:latest"
                     }
