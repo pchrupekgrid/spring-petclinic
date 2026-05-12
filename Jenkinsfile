@@ -20,6 +20,9 @@ pipeline {
                     }
                 }
                 stage('Test_mr') {
+                    environment {
+                        SPRING_DOCKER_COMPOSE_ENABLED = 'false'
+                    }
                     steps {
                         sh './gradlew test -Dspring.docker.compose.skip.in-tests=true'                    }
                 }
