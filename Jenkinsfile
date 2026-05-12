@@ -22,7 +22,7 @@ pipeline {
                 stage('Test_mr') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            sh './gradlew test'
+                            sh './gradlew test'}
                     }
                 }
                 stage('Build_mr_and_push') {
