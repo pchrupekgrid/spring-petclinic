@@ -1,0 +1,16 @@
+FROM eclipse-temurin:21-jdk-jammy as build
+WORKDIR /workspace/app
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+RUN ./mvnw clean package 
+
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=build /workspace/app/target/spring-petclinic-*.jar app.jar
+RUN addgroup --system petclinic_group && adduser --system --ingroup petclinic_group petclinic_user
+RUN chown petclinic_user:petclinic_group app.jar
+USER petclinic_user
+EXPOSE 8080
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
