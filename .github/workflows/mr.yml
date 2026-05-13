@@ -1,28 +1,73 @@
 name: Java CI with Gradle
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  build:
-
+  Checkstyle:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: [ '17' ]
+    container: maven:3.8.5-openjdk-17
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK ${{matrix.java}}
-        uses: actions/setup-java@v4
+      - name: Run Checkstyle Gradle
+        run: ./gradlew checkstyleMain
+
+      - name: Upload Checkstyle Raport
+        uses: actions/upload-artifact@v4
         with:
-          java-version: ${{matrix.java}}
-          distribution: 'adopt'
-          cache: maven
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: Build with Gradle
-        run: ./gradlew build
+          name: checkstyle-raport
+          path: build/reports/checkstyle/main.xml
+
+  Test:
+    needs: Checkstyle
+    runs-on: ubuntu-latest
+    container: maven:3.8.5-openjdk-17
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: ./gradlew test
+
+  Build:
+    needs: Test
+    runs-on: ubuntu-latest
+    container: maven:3.8.5-openjdk-17
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build without tests
+        run: ./gradlew assemble
+
+      - name: Build .jar file
+        uses: actions/upload-artifact@v4
+        with:
+          name: np-petclinic-jar
+          path: build/libs/*.jar
+
+  Docker_push:
+    needs: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name : Download .jar file
+        uses: actions/download-artifact@v4
+        with:
+          name: np-petclinic-jar
+
+      - name: Authenticate to GCP
+        uses: 'google-github-actions/auth@v3'
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker europe-central2-docker.pkg.dev
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            europe-central2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/mr-patryk/petclinic:${{ github.sha }}
