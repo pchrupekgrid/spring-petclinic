@@ -2,31 +2,38 @@ name: Push to main
 on:
   push:
     branches: [ main ]
+
 jobs:
   Build_and_Push:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'adopt'
-      - name: Build without tests
-        run: mvn clean package -DskipTests
-      - name: Authenticate to GCP
-        uses: 'google-github-actions/auth@v3'
+          
+      - name: Build with Gradle
+        run: ./gradlew assemble
+
+      - name: Prepare jar for Docker
+        run: cp build/libs/*.jar ./app.jar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-      - name: Configure Docker for GCP
-        run: gcloud auth configure-docker europe-central2-docker.pkg.dev
-      - name: Build and Push Docker Image
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            europe-central2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/main-patryk/petclinic:latest
-            europe-central2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/main-patryk/petclinic:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/main:latest
+            ${{ secrets.DOCKER_USERNAME }}/main:${{ github.sha }}
