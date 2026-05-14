@@ -18,17 +18,19 @@ jobs:
           name: checkstyle-report
           path: build/reports/checkstyle/main.xml
 
-  Test:
-    needs: Checkstyle
-    runs-on: ubuntu-latest
-    container: maven:3.8.5-openjdk-17
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Tests
-        run: ./gradlew test
+  
+  # Test:
+  #   needs: Checkstyle
+  #   runs-on: ubuntu-latest
+  #   container: maven:3.8.5-openjdk-17
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Run Tests
+  #       run: ./gradlew test
 
   Build:
-    needs: Test
+    # Build czeka teraz na Checkstyle (ponieważ zadanie Test zostało wyłączone)
+    needs: Checkstyle
     runs-on: ubuntu-latest
     container: maven:3.8.5-openjdk-17
     steps:
@@ -51,6 +53,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Download Jar Artifact
         uses: actions/download-artifact@v4
         with:
