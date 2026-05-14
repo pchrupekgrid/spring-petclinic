@@ -35,11 +35,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Jar
         run: ./gradlew assemble
+      
+      - name: Rename to app.jar
+        run: find build/libs -name "*.jar" ! -name "*-plain.jar" -exec mv {} build/libs/app.jar \;
+        
       - name: Upload Jar Artifact
         uses: actions/upload-artifact@v4
         with:
           name: petclinic-jar
-          path: build/libs/*.jar
+          path: build/libs/app.jar
 
   Docker_push:
     needs: Build
@@ -48,6 +52,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Pobieramy plik app.jar prosto do głównego folderu obok Dockerfile'a
       - name: Download Jar Artifact
         uses: actions/download-artifact@v4
         with:

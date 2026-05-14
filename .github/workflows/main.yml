@@ -21,8 +21,7 @@ jobs:
         run: ./gradlew assemble
 
       - name: Prepare jar for Docker
-        run: cp build/libs/*.jar ./app.jar
-
+        run: find build/libs -name "*.jar" ! -name "*-plain.jar" -exec cp {} app.jar \;
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
