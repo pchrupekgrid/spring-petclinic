@@ -51,8 +51,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Pobieramy plik app.jar prosto do głównego folderu obok Dockerfile'a
       - name: Download Jar Artifact
         uses: actions/download-artifact@v4
         with:
